@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 int line = 1;
 
@@ -202,6 +203,54 @@ void read_scene(char* filename) {
 }
 
 int main(int c, char** argv) {
-  read_scene(argv[1]);
-  return 0;
+	int i = 0;
+	int j = 0;
+	char* periodPointer;
+	if(c != 5){	//Ensure that five arguments are passed in through command line
+		fprintf(stderr, "Error: Incorrect amount of arguments\n\n");
+		exit(1);
+	}
+	
+	while(1){	//Ensure that both the width and height arguments are numbers
+		if(*(argv[1] + i) == NULL && *(argv[2] + j) == NULL){
+			break;
+		}
+		else if(*(argv[1] + i) == NULL){
+			i--;
+		}
+		else if(*(argv[2] + j) == NULL){
+			j--;
+		}
+		
+		if(!isdigit(*(argv[1] + i)) || !isdigit(*(argv[2] + j))){
+			fprintf(stderr, "Error: Width or Height field is not a number\n\n");
+			exit(1);
+		}
+		i++;
+		j++;
+	}
+	
+	periodPointer = strrchr(argv[3], '.');	//Ensure that the input scene file has an extension .json
+	if(periodPointer == NULL){
+		fprintf(stderr, "Error: Input scene does not have a file extension\n\n");
+		exit(1);
+	}
+	if(strcmp(periodPointer, ".json") != 0){
+		fprintf(stderr, "Error: Input scene file is not of type JSON\n\n");
+		exit(1);
+	}
+	
+	periodPointer = strrchr(argv[4], '.');	//Ensure that the output picture file has an extension .ppm
+	if(periodPointer == NULL){
+		fprintf(stderr, "Error: Output picture file does not have a file extension\n\n");
+		exit(1);
+	}
+	if(strcmp(periodPointer, ".ppm") != 0){
+		fprintf(stderr, "Error: Output picture file is not of type PPM\n\n");
+		exit(1);
+	}
+	
+	
+	read_scene(argv[3]);	//Parse .json scene file
+	return 0;
 }

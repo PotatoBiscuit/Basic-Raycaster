@@ -76,33 +76,38 @@ char* next_string(FILE* json) {
 }
 
 double next_number(FILE* json) {
-  double value;
-  fscanf(json, "%lf", &value);
-  // Error check this..
-  return value;
+	double value;
+	int numDigits = 0;
+	numDigits = fscanf(json, "%lf", &value);
+	if(numDigits == 0){
+		fprintf(stderr, "Error: Expected number at line %d\n", line);
+		exit(1);
+	}
+	return value;
 }
 
 double* next_vector(FILE* json) {
-  double* v = malloc(3*sizeof(double));
-  expect_c(json, '[');
-  skip_ws(json);
-  v[0] = next_number(json);
-  skip_ws(json);
-  expect_c(json, ',');
-  skip_ws(json);
-  v[1] = next_number(json);
-  skip_ws(json);
-  expect_c(json, ',');
-  skip_ws(json);
-  v[2] = next_number(json);
-  skip_ws(json);
-  expect_c(json, ']');
-  return v;
+	double* v = malloc(3*sizeof(double));
+	expect_c(json, '[');
+	skip_ws(json);
+	v[0] = next_number(json);
+	skip_ws(json);
+	expect_c(json, ',');
+	skip_ws(json);
+	v[1] = next_number(json);
+	skip_ws(json);
+	expect_c(json, ',');
+	skip_ws(json);
+	v[2] = next_number(json);
+	skip_ws(json);
+	expect_c(json, ']');
+	return v;
 }
 
 
 void read_scene(char* filename) {
   int c;
+  int numObjects = 0;
   FILE* json = fopen(filename, "r");
 
   if (json == NULL) {
@@ -121,11 +126,17 @@ void read_scene(char* filename) {
 
   while (1) {
     c = fgetc(json);
-    if (c == ']') {
-      fprintf(stderr, "Error: This is the worst scene file EVER.\n");
+    if (c == ']' && numObjects != 0) {
+      fprintf(stdout, "JSON parsing complete!\n");
       fclose(json);
       return;
     }
+	else if(c == ']'){
+		fprintf(stderr, "Error: JSON file contains no objects\n");
+		fclose(json);
+		return;
+	}
+	
     if (c == '{') {
       skip_ws(json);
     
@@ -155,43 +166,45 @@ void read_scene(char* filename) {
       skip_ws(json);
 
       while (1) {
-	// , }
-	c = next_c(json);
-	if (c == '}') {
-	  // stop parsing this object
-	  break;
-	} else if (c == ',') {
-	  // read another field
-	  skip_ws(json);
-	  char* key = next_string(json);
-	  skip_ws(json);
-	  expect_c(json, ':');
-	  skip_ws(json);
-	  if ((strcmp(key, "width") == 0) ||
-	      (strcmp(key, "height") == 0) ||
-	      (strcmp(key, "radius") == 0)) {
-	    double value = next_number(json);
-	  } else if ((strcmp(key, "color") == 0) ||
-		     (strcmp(key, "position") == 0) ||
-		     (strcmp(key, "normal") == 0)) {
-	    double* value = next_vector(json);
-	  } else {
-	    fprintf(stderr, "Error: Unknown property, \"%s\", on line %d.\n",
-		    key, line);
-	    //char* value = next_string(json);
-	  }
-	  skip_ws(json);
-	} else {
-	  fprintf(stderr, "Error: Unexpected value on line %d\n", line);
-	  exit(1);
-	}
+		// , }
+		c = next_c(json);
+		if (c == '}') {
+		  // stop parsing this object
+		  break;
+		} else if (c == ',') {
+		  // read another field
+		  skip_ws(json);
+		  char* key = next_string(json);
+		  skip_ws(json);
+		  expect_c(json, ':');
+		  skip_ws(json);
+		  if ((strcmp(key, "width") == 0) ||
+			  (strcmp(key, "height") == 0) ||
+			  (strcmp(key, "radius") == 0)) {
+			double value = next_number(json);
+		  } else if ((strcmp(key, "color") == 0) ||
+				 (strcmp(key, "position") == 0) ||
+				 (strcmp(key, "normal") == 0)) {
+			double* value = next_vector(json);
+		  } else {
+			fprintf(stderr, "Error: Unknown property, \"%s\", on line %d.\n",
+				key, line);
+			//char* value = next_string(json);
+		  }
+		  skip_ws(json);
+		} else {
+		  fprintf(stderr, "Error: Unexpected value on line %d\n", line);
+		  exit(1);
+		}
       }
       skip_ws(json);
+	  numObjects++;
       c = next_c(json);
       if (c == ',') {
 	// noop
 	skip_ws(json);
       } else if (c == ']') {
+	fprintf(stdout, "JSON parsing complete!\n");
 	fclose(json);
 	return;
       } else {

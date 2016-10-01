@@ -124,10 +124,60 @@ double* next_vector(FILE* json) {
 	return v;
 }
 
+void storeValue(Object* inputObject, int typeOfField, double inputValue, double* inputVector){
+	//typeOfField values: 0 = width, 1 = height, 2 = radius, 3 = color, 4 = position, 5 = normal
+	//if inputValue or inputVector aren't used, a 0 or NULL value should be passed in
+	if(inputObject->kind == 0){
+		if(typeOfField == 0){
+			inputObject->camera.width = inputValue;
+		}else if(typeOfField == 1){
+			inputObject->camera.height = inputValue;
+		}else{
+			fprintf(stderr, "Error: Camera may only have 'width' or 'height' fields, line:%d\n", line);
+			exit(1);
+		}
+	}else if(inputObject->kind == 1){
+		if(typeOfField == 2){
+			inputObject->sphere.radius = inputValue;
+		}else if(typeOfField == 3){
+			inputObject->sphere.color[0] = inputVector[0];
+			inputObject->sphere.color[1] = inputVector[1];
+			inputObject->sphere.color[2] = inputVector[2];
+		}else if(typeOfField == 4){
+			inputObject->sphere.position[0] = inputVector[0];
+			inputObject->sphere.position[1] = inputVector[1];
+			inputObject->sphere.position[2] = inputVector[2];
+		}else{
+			fprintf(stderr, "Error: Spheres only have 'radius', 'color', or 'position' fields, line:%d\n", line);
+			exit(1);
+		}
+	}else if(inputObject->kind == 2){
+		if(typeOfField == 3){
+			inputObject->plane.color[0] = inputVector[0];
+			inputObject->plane.color[1] = inputVector[1];
+			inputObject->plane.color[2] = inputVector[2];
+		}else if(typeOfField == 4){
+			inputObject->plane.position[0] = inputVector[0];
+			inputObject->plane.position[1] = inputVector[1];
+			inputObject->plane.position[2] = inputVector[2];
+		}else if(typeOfField == 5){
+			inputObject->plane.normal[0] = inputVector[0];
+			inputObject->plane.normal[1] = inputVector[1];
+			inputObject->plane.normal[2] = inputVector[2];
+		}else{
+			fprintf(stderr, "Error: Planes only have 'radius', 'color', or 'normal' fields, line:%d\n", line);
+			exit(1);
+		}
+	}else{
+		fprintf(stderr, "Error: Undefined object type, line:%d\n", line);
+		exit(1);
+	}
+}
 
-void read_scene(char* filename) {
+void read_scene(char* filename, Object** objectArray) {
   int c;
   int numObjects = 0;
+  int objectCounter = -1;
   FILE* json = fopen(filename, "r");
 
   if (json == NULL) {
@@ -143,7 +193,6 @@ void read_scene(char* filename) {
   skip_ws(json);
 
   // Find the objects
-
   while (1) {
     c = fgetc(json);
     if (c == ']' && numObjects != 0) {
@@ -158,6 +207,11 @@ void read_scene(char* filename) {
 	}
 	
     if (c == '{') {
+	  if(objectCounter >= 128){
+		  fprintf(stderr, "Error: Maximum amount of objects allowed (not including the camera) is 128, line:%d\n", line);
+		  exit(1);
+	  }
+	  objectArray[++objectCounter] = malloc(sizeof(Object));
       skip_ws(json);
     
       // Parse the object
@@ -176,8 +230,11 @@ void read_scene(char* filename) {
       char* value = next_string(json);
 
       if (strcmp(value, "camera") == 0) {
+		  objectArray[objectCounter]->kind = 0;
       } else if (strcmp(value, "sphere") == 0) {
+		  objectArray[objectCounter]->kind = 1;
       } else if (strcmp(value, "plane") == 0) {
+		  objectArray[objectCounter]->kind = 2;
       } else {
 	fprintf(stderr, "Error: Unknown type, \"%s\", on line number %d.\n", value, line);
 	exit(1);
@@ -198,17 +255,28 @@ void read_scene(char* filename) {
 		  skip_ws(json);
 		  expect_c(json, ':');
 		  skip_ws(json);
-		  if ((strcmp(key, "width") == 0) ||
-			  (strcmp(key, "height") == 0) ||
-			  (strcmp(key, "radius") == 0)) {
-			double value = next_number(json);
-		  } else if ((strcmp(key, "color") == 0) ||
-				 (strcmp(key, "position") == 0) ||
-				 (strcmp(key, "normal") == 0)) {
-			double* value = next_vector(json);
+		  if (strcmp(key, "width") == 0){
+			  double value = next_number(json);
+			  storeValue(objectArray[objectCounter], 0, value, NULL);
+		  }else if(strcmp(key, "height") == 0){
+			  double value = next_number(json);
+			  storeValue(objectArray[objectCounter], 1, value, NULL);
+		  }else if(strcmp(key, "radius") == 0) {
+			  double value = next_number(json);
+			  storeValue(objectArray[objectCounter], 2, value, NULL);
+		  } else if (strcmp(key, "color") == 0){
+			  double* value = next_vector(json);
+			  storeValue(objectArray[objectCounter], 3, 0, value);
+		  }else if(strcmp(key, "position") == 0){
+			  double* value = next_vector(json);
+			  storeValue(objectArray[objectCounter], 4, 0, value);
+		  }else if(strcmp(key, "normal") == 0) {
+			  double* value = next_vector(json);
+			  storeValue(objectArray[objectCounter], 5, 0, value);
 		  } else {
 			fprintf(stderr, "Error: Unknown property, \"%s\", on line %d.\n",
 				key, line);
+				exit(1);
 			//char* value = next_string(json);
 		  }
 		  skip_ws(json);
@@ -241,34 +309,7 @@ int main(int c, char** argv) {
 	char* periodPointer;
 	Object** objectArray = malloc(sizeof(Object*)*130);
 	objectArray[129] = NULL;
-	objectArray[0] = malloc(sizeof(Object));
-	objectArray[1] = malloc(sizeof(Object));
-	objectArray[2] = malloc(sizeof(Object));
-	
-	objectArray[0]->kind = 0;
-	objectArray[0]->camera.width = .5;
-	objectArray[0]->camera.height = .5;
-	objectArray[1]->kind = 1;
-	objectArray[1]->sphere.color[0] = 1;
-	objectArray[1]->sphere.color[1] = 0;
-	objectArray[1]->sphere.color[2] = 0;
-	objectArray[1]->sphere.position[0] = 0;
-	objectArray[1]->sphere.position[1] = 2;
-	objectArray[1]->sphere.position[2] = 5;
-	objectArray[1]->sphere.radius = 2;
-	objectArray[2]->kind = 2;
-	objectArray[2]->plane.color[0] = 0;
-	objectArray[2]->plane.color[1] = 0;
-	objectArray[2]->plane.color[2] = 1;
-	objectArray[2]->plane.position[0] = 0;
-	objectArray[2]->plane.position[1] = 0;
-	objectArray[2]->plane.position[2] = 0;
-	objectArray[2]->plane.normal[0] = 0;
-	objectArray[2]->plane.normal[1] = 1;
-	objectArray[2]->plane.normal[2] = 0;
-	printf("\n%f\n", objectArray[1]->sphere.radius);
-	printf("\n%f\n", objectArray[0]->camera.width);
-	printf("\n%f\n", objectArray[2]->plane.normal[1]);
+
 	
 	if(c != 5){	//Ensure that five arguments are passed in through command line
 		fprintf(stderr, "Error: Incorrect amount of arguments\n\n");
@@ -315,6 +356,6 @@ int main(int c, char** argv) {
 	}
 	
 	
-	read_scene(argv[3]);	//Parse .json scene file
+	read_scene(argv[3], objectArray);	//Parse .json scene file
 	return 0;
 }

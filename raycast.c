@@ -303,14 +303,10 @@ void read_scene(char* filename, Object** objectArray) {
   }
 }
 
-int main(int c, char** argv) {
+void argumentChecker(int c, char** argv){
 	int i = 0;
 	int j = 0;
 	char* periodPointer;
-	Object** objectArray = malloc(sizeof(Object*)*130);
-	objectArray[129] = NULL;
-
-	
 	if(c != 5){	//Ensure that five arguments are passed in through command line
 		fprintf(stderr, "Error: Incorrect amount of arguments\n\n");
 		exit(1);
@@ -337,7 +333,7 @@ int main(int c, char** argv) {
 	
 	periodPointer = strrchr(argv[3], '.');	//Ensure that the input scene file has an extension .json
 	if(periodPointer == NULL){
-		fprintf(stderr, "Error: Input scene does not have a file extension\n\n");
+		fprintf(stderr, "Error: Input scene file does not have a file extension\n\n");
 		exit(1);
 	}
 	if(strcmp(periodPointer, ".json") != 0){
@@ -354,8 +350,14 @@ int main(int c, char** argv) {
 		fprintf(stderr, "Error: Output picture file is not of type PPM\n\n");
 		exit(1);
 	}
+}
+
+int main(int c, char** argv) {
+	Object** objectArray = malloc(sizeof(Object*)*130);
+	objectArray[129] = NULL;
 	
 	
+	argumentChecker(c, argv);
 	read_scene(argv[3], objectArray);	//Parse .json scene file
 	return 0;
 }

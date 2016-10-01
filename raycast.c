@@ -3,6 +3,26 @@
 #include <string.h>
 #include <ctype.h>
 
+typedef struct {
+  int kind; // 0 = camera, 1 = sphere, 2 = plane
+  union {
+    struct {
+      double width;
+      double height;
+    } camera;
+    struct {
+      double color[3];
+	  double position[3];
+      double radius;
+    } sphere;
+    struct {
+      double color[3];
+	  double position[3];
+	  double normal[3];
+    } plane;
+  };
+} Object;
+
 int line = 1;
 
 // next_c() wraps the getc() function and provides error checking and line
@@ -219,6 +239,37 @@ int main(int c, char** argv) {
 	int i = 0;
 	int j = 0;
 	char* periodPointer;
+	Object** objectArray = malloc(sizeof(Object*)*130);
+	objectArray[129] = NULL;
+	objectArray[0] = malloc(sizeof(Object));
+	objectArray[1] = malloc(sizeof(Object));
+	objectArray[2] = malloc(sizeof(Object));
+	
+	objectArray[0]->kind = 0;
+	objectArray[0]->camera.width = .5;
+	objectArray[0]->camera.height = .5;
+	objectArray[1]->kind = 1;
+	objectArray[1]->sphere.color[0] = 1;
+	objectArray[1]->sphere.color[1] = 0;
+	objectArray[1]->sphere.color[2] = 0;
+	objectArray[1]->sphere.position[0] = 0;
+	objectArray[1]->sphere.position[1] = 2;
+	objectArray[1]->sphere.position[2] = 5;
+	objectArray[1]->sphere.radius = 2;
+	objectArray[2]->kind = 2;
+	objectArray[2]->plane.color[0] = 0;
+	objectArray[2]->plane.color[1] = 0;
+	objectArray[2]->plane.color[2] = 1;
+	objectArray[2]->plane.position[0] = 0;
+	objectArray[2]->plane.position[1] = 0;
+	objectArray[2]->plane.position[2] = 0;
+	objectArray[2]->plane.normal[0] = 0;
+	objectArray[2]->plane.normal[1] = 1;
+	objectArray[2]->plane.normal[2] = 0;
+	printf("\n%f\n", objectArray[1]->sphere.radius);
+	printf("\n%f\n", objectArray[0]->camera.width);
+	printf("\n%f\n", objectArray[2]->plane.normal[1]);
+	
 	if(c != 5){	//Ensure that five arguments are passed in through command line
 		fprintf(stderr, "Error: Incorrect amount of arguments\n\n");
 		exit(1);

@@ -124,46 +124,46 @@ double* next_vector(FILE* json) {
 	return v;
 }
 
-void storeValue(Object* inputObject, int typeOfField, double inputValue, double* inputVector){
-	//typeOfField values: 0 = width, 1 = height, 2 = radius, 3 = color, 4 = position, 5 = normal
-	//if inputValue or inputVector aren't used, a 0 or NULL value should be passed in
-	if(inputObject->kind == 0){
-		if(typeOfField == 0){
-			inputObject->camera.width = inputValue;
-		}else if(typeOfField == 1){
-			inputObject->camera.height = inputValue;
+void store_value(Object* input_object, int type_of_field, double input_value, double* input_vector){
+	//type_of_field values: 0 = width, 1 = height, 2 = radius, 3 = color, 4 = position, 5 = normal
+	//if input_value or input_vector aren't used, a 0 or NULL value should be passed in
+	if(input_object->kind == 0){
+		if(type_of_field == 0){
+			input_object->camera.width = input_value;
+		}else if(type_of_field == 1){
+			input_object->camera.height = input_value;
 		}else{
 			fprintf(stderr, "Error: Camera may only have 'width' or 'height' fields, line:%d\n", line);
 			exit(1);
 		}
-	}else if(inputObject->kind == 1){
-		if(typeOfField == 2){
-			inputObject->sphere.radius = inputValue;
-		}else if(typeOfField == 3){
-			inputObject->sphere.color[0] = inputVector[0];
-			inputObject->sphere.color[1] = inputVector[1];
-			inputObject->sphere.color[2] = inputVector[2];
-		}else if(typeOfField == 4){
-			inputObject->sphere.position[0] = inputVector[0];
-			inputObject->sphere.position[1] = inputVector[1];
-			inputObject->sphere.position[2] = inputVector[2];
+	}else if(input_object->kind == 1){
+		if(type_of_field == 2){
+			input_object->sphere.radius = input_value;
+		}else if(type_of_field == 3){
+			input_object->sphere.color[0] = input_vector[0];
+			input_object->sphere.color[1] = input_vector[1];
+			input_object->sphere.color[2] = input_vector[2];
+		}else if(type_of_field == 4){
+			input_object->sphere.position[0] = input_vector[0];
+			input_object->sphere.position[1] = input_vector[1];
+			input_object->sphere.position[2] = input_vector[2];
 		}else{
 			fprintf(stderr, "Error: Spheres only have 'radius', 'color', or 'position' fields, line:%d\n", line);
 			exit(1);
 		}
-	}else if(inputObject->kind == 2){
-		if(typeOfField == 3){
-			inputObject->plane.color[0] = inputVector[0];
-			inputObject->plane.color[1] = inputVector[1];
-			inputObject->plane.color[2] = inputVector[2];
-		}else if(typeOfField == 4){
-			inputObject->plane.position[0] = inputVector[0];
-			inputObject->plane.position[1] = inputVector[1];
-			inputObject->plane.position[2] = inputVector[2];
-		}else if(typeOfField == 5){
-			inputObject->plane.normal[0] = inputVector[0];
-			inputObject->plane.normal[1] = inputVector[1];
-			inputObject->plane.normal[2] = inputVector[2];
+	}else if(input_object->kind == 2){
+		if(type_of_field == 3){
+			input_object->plane.color[0] = input_vector[0];
+			input_object->plane.color[1] = input_vector[1];
+			input_object->plane.color[2] = input_vector[2];
+		}else if(type_of_field == 4){
+			input_object->plane.position[0] = input_vector[0];
+			input_object->plane.position[1] = input_vector[1];
+			input_object->plane.position[2] = input_vector[2];
+		}else if(type_of_field == 5){
+			input_object->plane.normal[0] = input_vector[0];
+			input_object->plane.normal[1] = input_vector[1];
+			input_object->plane.normal[2] = input_vector[2];
 		}else{
 			fprintf(stderr, "Error: Planes only have 'radius', 'color', or 'normal' fields, line:%d\n", line);
 			exit(1);
@@ -174,10 +174,10 @@ void storeValue(Object* inputObject, int typeOfField, double inputValue, double*
 	}
 }
 
-void read_scene(char* filename, Object** objectArray) {
+int read_scene(char* filename, Object** object_array) {
   int c;
-  int numObjects = 0;
-  int objectCounter = -1;
+  int num_objects = 0;
+  int object_counter = -1;
   FILE* json = fopen(filename, "r");
 
   if (json == NULL) {
@@ -195,23 +195,23 @@ void read_scene(char* filename, Object** objectArray) {
   // Find the objects
   while (1) {
     c = fgetc(json);
-    if (c == ']' && numObjects != 0) {
+    if (c == ']' && num_objects != 0) {
       fprintf(stdout, "JSON parsing complete!\n");
       fclose(json);
-      return;
+      return object_counter;
     }
 	else if(c == ']'){
 		fprintf(stderr, "Error: JSON file contains no objects\n");
 		fclose(json);
-		return;
+		exit(1);
 	}
 	
     if (c == '{') {
-	  if(objectCounter >= 128){
+	  if(object_counter >= 128){
 		  fprintf(stderr, "Error: Maximum amount of objects allowed (not including the camera) is 128, line:%d\n", line);
 		  exit(1);
 	  }
-	  objectArray[++objectCounter] = malloc(sizeof(Object));
+	  object_array[++object_counter] = malloc(sizeof(Object));
       skip_ws(json);
     
       // Parse the object
@@ -230,11 +230,11 @@ void read_scene(char* filename, Object** objectArray) {
       char* value = next_string(json);
 
       if (strcmp(value, "camera") == 0) {
-		  objectArray[objectCounter]->kind = 0;
+		  object_array[object_counter]->kind = 0;
       } else if (strcmp(value, "sphere") == 0) {
-		  objectArray[objectCounter]->kind = 1;
+		  object_array[object_counter]->kind = 1;
       } else if (strcmp(value, "plane") == 0) {
-		  objectArray[objectCounter]->kind = 2;
+		  object_array[object_counter]->kind = 2;
       } else {
 	fprintf(stderr, "Error: Unknown type, \"%s\", on line number %d.\n", value, line);
 	exit(1);
@@ -257,22 +257,22 @@ void read_scene(char* filename, Object** objectArray) {
 		  skip_ws(json);
 		  if (strcmp(key, "width") == 0){
 			  double value = next_number(json);
-			  storeValue(objectArray[objectCounter], 0, value, NULL);
+			  store_value(object_array[object_counter], 0, value, NULL);
 		  }else if(strcmp(key, "height") == 0){
 			  double value = next_number(json);
-			  storeValue(objectArray[objectCounter], 1, value, NULL);
+			  store_value(object_array[object_counter], 1, value, NULL);
 		  }else if(strcmp(key, "radius") == 0) {
 			  double value = next_number(json);
-			  storeValue(objectArray[objectCounter], 2, value, NULL);
+			  store_value(object_array[object_counter], 2, value, NULL);
 		  } else if (strcmp(key, "color") == 0){
 			  double* value = next_vector(json);
-			  storeValue(objectArray[objectCounter], 3, 0, value);
+			  store_value(object_array[object_counter], 3, 0, value);
 		  }else if(strcmp(key, "position") == 0){
 			  double* value = next_vector(json);
-			  storeValue(objectArray[objectCounter], 4, 0, value);
+			  store_value(object_array[object_counter], 4, 0, value);
 		  }else if(strcmp(key, "normal") == 0) {
 			  double* value = next_vector(json);
-			  storeValue(objectArray[objectCounter], 5, 0, value);
+			  store_value(object_array[object_counter], 5, 0, value);
 		  } else {
 			fprintf(stderr, "Error: Unknown property, \"%s\", on line %d.\n",
 				key, line);
@@ -286,7 +286,7 @@ void read_scene(char* filename, Object** objectArray) {
 		}
       }
       skip_ws(json);
-	  numObjects++;
+	  num_objects++;
       c = next_c(json);
       if (c == ',') {
 	// noop
@@ -294,7 +294,7 @@ void read_scene(char* filename, Object** objectArray) {
       } else if (c == ']') {
 	fprintf(stdout, "JSON parsing complete!\n");
 	fclose(json);
-	return;
+	return object_counter;
       } else {
 	fprintf(stderr, "Error: Expecting ',' or ']' on line %d.\n", line);
 	exit(1);
@@ -303,12 +303,12 @@ void read_scene(char* filename, Object** objectArray) {
   }
 }
 
-void argumentChecker(int c, char** argv){
+void argument_checker(int c, char** argv){
 	int i = 0;
 	int j = 0;
 	char* periodPointer;
 	if(c != 5){	//Ensure that five arguments are passed in through command line
-		fprintf(stderr, "Error: Incorrect amount of arguments\n\n");
+		fprintf(stderr, "Error: Incorrect amount of arguments\n");
 		exit(1);
 	}
 	
@@ -324,7 +324,7 @@ void argumentChecker(int c, char** argv){
 		}
 		
 		if(!isdigit(*(argv[1] + i)) || !isdigit(*(argv[2] + j))){
-			fprintf(stderr, "Error: Width or Height field is not a number\n\n");
+			fprintf(stderr, "Error: Width or Height field is not a number\n");
 			exit(1);
 		}
 		i++;
@@ -333,31 +333,34 @@ void argumentChecker(int c, char** argv){
 	
 	periodPointer = strrchr(argv[3], '.');	//Ensure that the input scene file has an extension .json
 	if(periodPointer == NULL){
-		fprintf(stderr, "Error: Input scene file does not have a file extension\n\n");
+		fprintf(stderr, "Error: Input scene file does not have a file extension\n");
 		exit(1);
 	}
 	if(strcmp(periodPointer, ".json") != 0){
-		fprintf(stderr, "Error: Input scene file is not of type JSON\n\n");
+		fprintf(stderr, "Error: Input scene file is not of type JSON\n");
 		exit(1);
 	}
 	
 	periodPointer = strrchr(argv[4], '.');	//Ensure that the output picture file has an extension .ppm
 	if(periodPointer == NULL){
-		fprintf(stderr, "Error: Output picture file does not have a file extension\n\n");
+		fprintf(stderr, "Error: Output picture file does not have a file extension\n");
 		exit(1);
 	}
 	if(strcmp(periodPointer, ".ppm") != 0){
-		fprintf(stderr, "Error: Output picture file is not of type PPM\n\n");
+		fprintf(stderr, "Error: Output picture file is not of type PPM\n");
 		exit(1);
 	}
 }
 
 int main(int c, char** argv) {
-	Object** objectArray = malloc(sizeof(Object*)*130);
-	objectArray[129] = NULL;
+	Object** object_array = malloc(sizeof(Object*)*130);
+	int object_counter;
+	object_array[129] = NULL;
 	
 	
-	argumentChecker(c, argv);
-	read_scene(argv[3], objectArray);	//Parse .json scene file
+	argument_checker(c, argv);
+	object_counter = read_scene(argv[3], object_array);	//Parse .json scene file
+	//raycast_scene() //FINISH
+	
 	return 0;
 }

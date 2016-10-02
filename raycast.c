@@ -462,7 +462,6 @@ void raycast_scene(Object** object_array, int object_counter, double** pixel_buf
 			parse_count++;
 			continue;
 		}else if(object_array[parse_count]->kind == 1){
-			printf("\n");
 			for(y = 0; y < M; y += 1){
 				for(x = 0; x < N; x += 1){
 					Ro[0] = 0;
@@ -480,18 +479,14 @@ void raycast_scene(Object** object_array, int object_counter, double** pixel_buf
 						pixel_buffer[pixel_count][1] = object_array[parse_count]->sphere.color[1];
 						pixel_buffer[pixel_count][2] = object_array[parse_count]->sphere.color[2];
 						pixel_count++;
-						printf("#");
 					}else{
 						pixel_count++;
-						printf(".");
 					}
 				}
-				printf("\n");
 			}
 			pixel_count = 0;
 			parse_count++;
 		}else if(object_array[parse_count]->kind == 2){
-			printf("\n");
 			for(y = 0; y < M; y += 1){
 				for(x = 0; x < N; x += 1){
 					Ro[0] = 0;
@@ -509,13 +504,10 @@ void raycast_scene(Object** object_array, int object_counter, double** pixel_buf
 						pixel_buffer[pixel_count][1] = object_array[parse_count]->plane.color[1];
 						pixel_buffer[pixel_count][2] = object_array[parse_count]->plane.color[2];
 						pixel_count++;
-						printf("#");
 					}else{
 						pixel_count++;
-						printf(".");
 					}
 				}
-				printf("\n");
 			}
 			pixel_count = 0;
 			parse_count++;
@@ -525,6 +517,24 @@ void raycast_scene(Object** object_array, int object_counter, double** pixel_buf
 		}
 	}
 	printf("All objects have been rendered!\n");
+}
+
+void create_image(double** pixel_buffer, char* output, int width, int height){
+	FILE *output_pointer = fopen(output, "wb");	/*Open the output file*/
+	char buffer[width*height*3];
+	int counter = 0;
+	
+	while(counter < width*height){
+		buffer[counter*3] = (int)(255*pixel_buffer[counter][0]);
+		buffer[counter*3 + 1] = (int)(255*pixel_buffer[counter][1]);
+		buffer[counter*3 + 2] = (int)(255*pixel_buffer[counter][2]);
+		counter++;
+	}
+	fprintf(output_pointer, "P6\n%d %d\n255\n", width, height);
+	fwrite(buffer, sizeof(char), width*height*3, output_pointer);
+	
+	fprintf(stdout, "Write to %s complete!\n", output);
+	fclose(output_pointer);
 }
 
 int main(int c, char** argv) {
@@ -554,6 +564,7 @@ int main(int c, char** argv) {
 	
 	object_counter = read_scene(argv[3], object_array);	//Parse .json scene file
 	raycast_scene(object_array, object_counter, pixel_buffer, width, height);
+	create_image(pixel_buffer, argv[4], width, height);
 	
 	return 0;
 }

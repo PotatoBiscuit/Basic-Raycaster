@@ -141,8 +141,16 @@ void store_value(Object* input_object, int type_of_field, double input_value, do
 	//if input_value or input_vector aren't used, a 0 or NULL value should be passed in
 	if(input_object->kind == 0){
 		if(type_of_field == 0){
+			if(input_value <= 0){
+				fprintf(stderr, "Error: Camera width must be greater than 0, line:%d\n", line);
+				exit(1);
+			}
 			input_object->camera.width = input_value;
 		}else if(type_of_field == 1){
+			if(input_value <= 0){
+				fprintf(stderr, "Error: Camera height must be greater than 0, line:%d\n", line);
+				exit(1);
+			}
 			input_object->camera.height = input_value;
 		}else{
 			fprintf(stderr, "Error: Camera may only have 'width' or 'height' fields, line:%d\n", line);
@@ -420,8 +428,9 @@ double plane_intersection(double* Ro, double* Rd, double* C, double* N){
 	return 0;
 }
 
-void raycast_scene(Object** object_array, int object_counter, int N, int M){
+void raycast_scene(Object** object_array, int object_counter, double** pixel_buffer, int N, int M){
 	int parse_count = 0;
+	int pixel_count = 0;
 	int i;
 	int x;
 	int y;
@@ -467,13 +476,19 @@ void raycast_scene(Object** object_array, int object_counter, int N, int M){
 					t = sphere_intersection(Ro, Rd, object_array[parse_count]->sphere.position,
 											object_array[parse_count]->sphere.radius);
 					if(t > 0 && t != INFINITY){
+						pixel_buffer[pixel_count][0] = object_array[parse_count]->sphere.color[0];
+						pixel_buffer[pixel_count][1] = object_array[parse_count]->sphere.color[1];
+						pixel_buffer[pixel_count][2] = object_array[parse_count]->sphere.color[2];
+						pixel_count++;
 						printf("#");
 					}else{
+						pixel_count++;
 						printf(".");
 					}
 				}
 				printf("\n");
 			}
+			pixel_count = 0;
 			parse_count++;
 		}else if(object_array[parse_count]->kind == 2){
 			printf("\n");
@@ -490,13 +505,19 @@ void raycast_scene(Object** object_array, int object_counter, int N, int M){
 					t = plane_intersection(Ro, Rd, object_array[parse_count]->plane.position,
 											object_array[parse_count]->plane.normal);
 					if(t > 0 && t != INFINITY){
+						pixel_buffer[pixel_count][0] = object_array[parse_count]->plane.color[0];
+						pixel_buffer[pixel_count][1] = object_array[parse_count]->plane.color[1];
+						pixel_buffer[pixel_count][2] = object_array[parse_count]->plane.color[2];
+						pixel_count++;
 						printf("#");
 					}else{
+						pixel_count++;
 						printf(".");
 					}
 				}
 				printf("\n");
 			}
+			pixel_count = 0;
 			parse_count++;
 		}else{
 			fprintf(stderr, "Error: Unrecognized Object\n");
@@ -508,13 +529,31 @@ void raycast_scene(Object** object_array, int object_counter, int N, int M){
 
 int main(int c, char** argv) {
 	Object** object_array = malloc(sizeof(Object*)*130);
+	int width;
+	int height;
+	double** pixel_buffer;
 	int object_counter;
+	int counter = 0;
 	object_array[129] = NULL;
 	
-	
 	argument_checker(c, argv);
+	
+	width = atoi(argv[1]);
+	height = atoi(argv[2]);
+	
+	pixel_buffer = malloc(sizeof(double*)*(width*height + 1));
+	pixel_buffer[width*height] = NULL;
+	
+	while(counter < width*height){
+		pixel_buffer[counter] = malloc(sizeof(double)*3);
+		pixel_buffer[counter][0] = 0;
+		pixel_buffer[counter][1] = 0;
+		pixel_buffer[counter][2] = 0;
+		counter++;
+	}
+	
 	object_counter = read_scene(argv[3], object_array);	//Parse .json scene file
-	raycast_scene(object_array, object_counter, atoi(argv[1]), atoi(argv[2]));
+	raycast_scene(object_array, object_counter, pixel_buffer, width, height);
 	
 	return 0;
 }

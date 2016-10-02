@@ -125,6 +125,17 @@ double* next_vector(FILE* json) {
 	return v;
 }
 
+static inline double sqr(double v) {
+  return v*v;
+}
+
+static inline void normalize(double* v) {
+	double len = sqrt(sqr(v[0]) + sqr(v[1]) + sqr(v[2]));
+	v[0] /= len;
+	v[1] /= len;
+	v[2] /= len;
+}
+
 void store_value(Object* input_object, int type_of_field, double input_value, double* input_vector){
 	//type_of_field values: 0 = width, 1 = height, 2 = radius, 3 = color, 4 = position, 5 = normal
 	//if input_value or input_vector aren't used, a 0 or NULL value should be passed in
@@ -165,6 +176,7 @@ void store_value(Object* input_object, int type_of_field, double input_value, do
 			input_object->plane.normal[0] = input_vector[0];
 			input_object->plane.normal[1] = input_vector[1];
 			input_object->plane.normal[2] = input_vector[2];
+			normalize(input_object->plane.normal);
 		}else{
 			fprintf(stderr, "Error: Planes only have 'radius', 'color', or 'normal' fields, line:%d\n", line);
 			exit(1);
@@ -353,18 +365,7 @@ void argument_checker(int c, char** argv){
 	}
 }
 
-static inline double sqr(double v) {
-  return v*v;
-}
-
-static inline void normalize(double* v) {
-	double len = sqrt(sqr(v[0]) + sqr(v[1]) + sqr(v[2]));
-	v[0] /= len;
-	v[1] /= len;
-	v[2] /= len;
-}
-
-double sphere_intersection(double* Ro, double* Rd, double* color, double* C, double radius){
+double sphere_intersection(double* Ro, double* Rd, double* C, double radius){
 	//Sphere equation is x^2 + y^2 + z^2 = r^2
 	//Parameterize: (x-Cx)^2 + (y-Cy)^2 + (z-Cz)^2 - r^2 = 0
 	//Substitute with ray:
@@ -388,6 +389,18 @@ double sphere_intersection(double* Ro, double* Rd, double* color, double* C, dou
 	t1 = (-b + det)/(2*a);
 	if(t1 > 0) return t1;
 	
+	return 0;
+}
+
+double plane_intersection(double* Ro, double* Rd, double* C, double* N){
+	//Solve for Plane Equation:
+	//Nx(x - Cx) + Ny(y - Cy) + Nz(z - Cz) = 0
+	//Plug in our Ray:
+	//Nx(Rox + t*Rdx - Cx) + Ny(Roy + t*Rdy - Cy) + Nz(Roz + t*Rdz - Cz) = 0
+	//Solve for t:
+	//t = ((NxCx - NxRox) + (NyCy - NyRoy) + (NzCz - NzRoz))/(RdxNx + RdyNy + RdzNz)
+	double t = ((N[0]*C[0] - N[0]*Ro[0]) + (N[1]*C[1] - N[1]*Ro[1]) + (N[2]*C[2] - N[2]*Ro[2]))/(Rd[0]*N[0] + Rd[1]*N[1] + Rd[2]*N[2]);
+	if(t > 0) return t;
 	return 0;
 }
 
@@ -435,8 +448,7 @@ void raycast_scene(Object** object_array, int object_counter, int N, int M){
 					Rd[2] = 1;
 					normalize(Rd);
 					
-					t = sphere_intersection(Ro, Rd, object_array[parse_count]->sphere.color,
-											object_array[parse_count]->sphere.position,
+					t = sphere_intersection(Ro, Rd, object_array[parse_count]->sphere.position,
 											object_array[parse_count]->sphere.radius);
 					if(t > 0 && t != INFINITY){
 						printf("#");
@@ -448,6 +460,27 @@ void raycast_scene(Object** object_array, int object_counter, int N, int M){
 			}
 			parse_count++;
 		}else if(object_array[parse_count]->kind == 2){
+			printf("\n");
+			for(y = 0; y < M; y += 1){
+				for(x = 0; x < N; x += 1){
+					Ro[0] = 0;
+					Ro[1] = 0;
+					Ro[2] = 0;
+					Rd[0] = cx - (w/2) + pixwidth * (x + .5);
+					Rd[1] = cy - (h/2) + pixheight * (y + .5);
+					Rd[2] = 1;
+					normalize(Rd);
+					
+					t = plane_intersection(Ro, Rd, object_array[parse_count]->plane.position,
+											object_array[parse_count]->plane.normal);
+					if(t > 0 && t != INFINITY){
+						printf("#");
+					}else{
+						printf(".");
+					}
+				}
+				printf("\n");
+			}
 			parse_count++;
 		}else{
 			fprintf(stderr, "Error: Unrecognized Object\n");

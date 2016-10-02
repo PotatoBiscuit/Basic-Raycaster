@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 
 typedef struct {
   int kind; // 0 = camera, 1 = sphere, 2 = plane
@@ -352,6 +353,110 @@ void argument_checker(int c, char** argv){
 	}
 }
 
+static inline double sqr(double v) {
+  return v*v;
+}
+
+static inline void normalize(double* v) {
+	double len = sqrt(sqr(v[0]) + sqr(v[1]) + sqr(v[2]));
+	v[0] /= len;
+	v[1] /= len;
+	v[2] /= len;
+}
+
+double sphere_intersection(double* Ro, double* Rd, double* color, double* C, double radius){
+	//Sphere equation is x^2 + y^2 + z^2 = r^2
+	//Parameterize: (x-Cx)^2 + (y-Cy)^2 + (z-Cz)^2 - r^2 = 0
+	//Substitute with ray:
+	//(Rox + t*Rdx - Cx)^2 + (Roy + t*Rdy - Cy)^2 + (Roz + t*Rdz - Cz)^2 - r^2 = 0
+	//Solve for t:
+	//a = Rdx^2 + Rdy^2 + Rdz^2
+	double a = sqr(Rd[0]) + sqr(Rd[1]) + sqr(Rd[2]);
+	//b = (2RdxRox - 2RdxCx) + (2RdyRoy - 2RdyCy) + (2RdzRoz - 2RdzCz)
+	double b = (2*Rd[0]*Ro[0] - 2*Rd[0]*C[0]) + (2*Rd[1]*Ro[1] - 2*Rd[1]*C[1]) + (2*Rd[2]*Ro[2] - 2*Rd[2]*C[2]);
+	//c = (Rox^2 - 2RoxCx + Cx^2) + (Roy^2 - 2RoyCy + Cy^2) + (Roz^2 - 2RozCz + Cz^2) - r^2
+	double c = (sqr(Ro[0]) - 2*Ro[0]*C[0] + sqr(C[0])) + (sqr(Ro[1]) - 2*Ro[1]*C[1] + sqr(C[1])) + (sqr(Ro[2]) - 2*Ro[2]*C[2] + sqr(C[2])) - sqr(radius);
+	
+	double t0;
+	double t1;
+	double det = sqr(b) - 4*a*c;
+	if(det < 0) return 0;
+	
+	t0 = (-b - det)/(2*a);
+	if(t0 > 0) return t0;
+	
+	t1 = (-b + det)/(2*a);
+	if(t1 > 0) return t1;
+	
+	return 0;
+}
+
+void raycast_scene(Object** object_array, int object_counter, int N, int M){
+	int parse_count = 0;
+	int i;
+	int x;
+	int y;
+	double Ro[3];
+	double Rd[3];
+	double cx = 0;
+	double cy = 0;
+	double w;
+	double h;
+	double pixwidth;
+	double pixheight;
+	double t;
+	
+	if(object_array[parse_count]->kind != 0){
+		fprintf(stderr, "Error: First object must be of type camera\n");
+		exit(1);
+	}
+	
+	while(parse_count < object_counter + 1){
+		if(object_array[parse_count]->kind == 0){
+			if(parse_count != 0){
+				fprintf(stderr, "Error: You may only have one camera\n");
+				exit(1);
+			}
+			w = object_array[parse_count]->camera.width;
+			pixwidth = w/N;
+			h = object_array[parse_count]->camera.height;
+			pixheight = h/M;
+			parse_count++;
+			continue;
+		}else if(object_array[parse_count]->kind == 1){
+			printf("\n");
+			for(y = 0; y < M; y += 1){
+				for(x = 0; x < N; x += 1){
+					Ro[0] = 0;
+					Ro[1] = 0;
+					Ro[2] = 0;
+					Rd[0] = cx - (w/2) + pixwidth * (x + .5);
+					Rd[1] = cy - (h/2) + pixheight * (y + .5);
+					Rd[2] = 1;
+					normalize(Rd);
+					
+					t = sphere_intersection(Ro, Rd, object_array[parse_count]->sphere.color,
+											object_array[parse_count]->sphere.position,
+											object_array[parse_count]->sphere.radius);
+					if(t > 0 && t != INFINITY){
+						printf("#");
+					}else{
+						printf(".");
+					}
+				}
+				printf("\n");
+			}
+			parse_count++;
+		}else if(object_array[parse_count]->kind == 2){
+			parse_count++;
+		}else{
+			fprintf(stderr, "Error: Unrecognized Object\n");
+			exit(1);
+		}
+	}
+	printf("All objects have been rendered!\n");
+}
+
 int main(int c, char** argv) {
 	Object** object_array = malloc(sizeof(Object*)*130);
 	int object_counter;
@@ -360,7 +465,7 @@ int main(int c, char** argv) {
 	
 	argument_checker(c, argv);
 	object_counter = read_scene(argv[3], object_array);	//Parse .json scene file
-	//raycast_scene() //FINISH
+	raycast_scene(object_array, object_counter, atoi(argv[1]), atoi(argv[2]));
 	
 	return 0;
 }

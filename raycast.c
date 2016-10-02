@@ -152,6 +152,14 @@ void store_value(Object* input_object, int type_of_field, double input_value, do
 		if(type_of_field == 2){
 			input_object->sphere.radius = input_value;
 		}else if(type_of_field == 3){
+			if(input_vector[0] > 1 || input_vector[1] > 1 || input_vector[2] > 1){
+				fprintf(stderr, "Error: Color values must be between 0 and 1, line:%d\n", line);
+				exit(1);
+			}
+			if(input_vector[0] < 0 || input_vector[1] < 0 || input_vector[2] < 0){
+				fprintf(stderr, "Error: Color values may not be negative, line:%d\n", line);
+				exit(1);
+			}
 			input_object->sphere.color[0] = input_vector[0];
 			input_object->sphere.color[1] = input_vector[1];
 			input_object->sphere.color[2] = input_vector[2];
@@ -165,6 +173,14 @@ void store_value(Object* input_object, int type_of_field, double input_value, do
 		}
 	}else if(input_object->kind == 2){
 		if(type_of_field == 3){
+			if(input_vector[0] > 1 || input_vector[1] > 1 || input_vector[2] > 1){
+				fprintf(stderr, "Error: Color values must be between 0 and 1, line:%d\n", line);
+				exit(1);
+			}
+			if(input_vector[0] < 0 || input_vector[1] < 0 || input_vector[2] < 0){
+				fprintf(stderr, "Error: Color values may not be negative, line:%d\n", line);
+				exit(1);
+			}
 			input_object->plane.color[0] = input_vector[0];
 			input_object->plane.color[1] = input_vector[1];
 			input_object->plane.color[2] = input_vector[2];

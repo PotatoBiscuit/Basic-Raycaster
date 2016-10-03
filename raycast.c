@@ -475,9 +475,9 @@ void raycast_scene(Object** object_array, int object_counter, double** pixel_buf
 					t = sphere_intersection(Ro, Rd, object_array[parse_count]->sphere.position,
 											object_array[parse_count]->sphere.radius);
 					if(t > 0 && t != INFINITY){
-						pixel_buffer[pixel_count][0] = object_array[parse_count]->sphere.color[0];
-						pixel_buffer[pixel_count][1] = object_array[parse_count]->sphere.color[1];
-						pixel_buffer[pixel_count][2] = object_array[parse_count]->sphere.color[2];
+						pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][0] = object_array[parse_count]->sphere.color[0];
+						pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][1] = object_array[parse_count]->sphere.color[1];
+						pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][2] = object_array[parse_count]->sphere.color[2];
 						pixel_count++;
 					}else{
 						pixel_count++;
@@ -500,9 +500,9 @@ void raycast_scene(Object** object_array, int object_counter, double** pixel_buf
 					t = plane_intersection(Ro, Rd, object_array[parse_count]->plane.position,
 											object_array[parse_count]->plane.normal);
 					if(t > 0 && t != INFINITY){
-						pixel_buffer[pixel_count][0] = object_array[parse_count]->plane.color[0];
-						pixel_buffer[pixel_count][1] = object_array[parse_count]->plane.color[1];
-						pixel_buffer[pixel_count][2] = object_array[parse_count]->plane.color[2];
+						pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][0] = object_array[parse_count]->plane.color[0];
+						pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][1] = object_array[parse_count]->plane.color[1];
+						pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][2] = object_array[parse_count]->plane.color[2];
 						pixel_count++;
 					}else{
 						pixel_count++;
@@ -517,6 +517,10 @@ void raycast_scene(Object** object_array, int object_counter, double** pixel_buf
 		}
 	}
 	printf("All objects have been rendered!\n");
+}
+
+void object_array_sorter(Object** object_array){
+	return;
 }
 
 void create_image(double** pixel_buffer, char* output, int width, int height){

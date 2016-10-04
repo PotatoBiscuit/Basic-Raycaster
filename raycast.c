@@ -531,6 +531,26 @@ void create_image(double** pixel_buffer, char* output, int width, int height){
 	fclose(output_pointer);
 }
 
+void move_camera_to_front(Object** object_array, int object_count){
+	Object* temp_object;
+	int counter = 0;
+	int num_cameras = 0;
+	while(counter < object_count + 1){
+		if(object_array[counter]->kind == 0 && counter == 0){
+			num_cameras++;
+		}else if(object_array[counter]->kind == 0){
+			if((++num_cameras) > 1){
+				fprintf(stderr, "Error: You may only have one camera\n");
+				exit(1);
+			}
+			temp_object = object_array[0];
+			object_array[0] = object_array[counter];
+			object_array[counter] = temp_object;
+		}
+		counter++;
+	}
+}
+
 int main(int c, char** argv) {
 	Object** object_array = malloc(sizeof(Object*)*130);
 	int width;
@@ -557,6 +577,7 @@ int main(int c, char** argv) {
 	}
 	
 	object_counter = read_scene(argv[3], object_array);	//Parse .json scene file
+	move_camera_to_front(object_array, object_counter);
 	raycast_scene(object_array, object_counter, pixel_buffer, width, height);
 	create_image(pixel_buffer, argv[4], width, height);
 	

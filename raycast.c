@@ -519,8 +519,50 @@ void raycast_scene(Object** object_array, int object_counter, double** pixel_buf
 	printf("All objects have been rendered!\n");
 }
 
-void object_array_sorter(Object** object_array){
-	return;
+void object_array_sorter(Object** object_array, int object_count){
+	Object* temporary_object;
+	int counter = 1;
+	int special_counter = 0;
+	int temp_count = object_count;
+	
+	while(special_counter < object_count - 1){
+		while(counter < temp_count){
+			if(object_array[counter]->kind == 1){
+				if(object_array[counter + 1]->kind == 1){
+					if(object_array[counter]->sphere.position[2] > object_array[counter + 1]->sphere.position[2]){
+						temporary_object = object_array[counter];
+						object_array[counter] = object_array[counter + 1];
+						object_array[counter + 1] = temporary_object;
+					}
+				}else{
+					if(object_array[counter]->sphere.position[2] > object_array[counter + 1]->plane.position[2]){
+						temporary_object = object_array[counter];
+						object_array[counter] = object_array[counter + 1];
+						object_array[counter + 1] = temporary_object;
+					}
+				}
+			}else{
+				if(object_array[counter + 1]->kind == 1){
+					if(object_array[counter]->plane.position[2] > object_array[counter + 1]->sphere.position[2]){
+						temporary_object = object_array[counter];
+						object_array[counter] = object_array[counter + 1];
+						object_array[counter + 1] = temporary_object;
+					}
+				}else{
+					if(object_array[counter]->plane.position[2] > object_array[counter + 1]->plane.position[2]){
+						temporary_object = object_array[counter];
+						object_array[counter] = object_array[counter + 1];
+						object_array[counter + 1] = temporary_object;
+					}
+				}
+			}
+			counter++;
+		}
+		counter = 1;
+		temp_count--;
+		special_counter++;
+	}
+	printf("Object layering complete!\n");
 }
 
 void create_image(double** pixel_buffer, char* output, int width, int height){
@@ -567,6 +609,7 @@ int main(int c, char** argv) {
 	}
 	
 	object_counter = read_scene(argv[3], object_array);	//Parse .json scene file
+	object_array_sorter(object_array, object_counter);
 	raycast_scene(object_array, object_counter, pixel_buffer, width, height);
 	create_image(pixel_buffer, argv[4], width, height);
 	

@@ -408,12 +408,15 @@ double sphere_intersection(double* Ro, double* Rd, double* C, double radius){
 	if(det < 0) return 0;
 	
 	t0 = (-b - det)/(2*a);
-	if(t0 > 0) return t0;
-	
 	t1 = (-b + det)/(2*a);
-	if(t1 > 0) return t1;
+	if(t0 <= 0 && t1 <= 0) return 0;
+	if(t0 <= 0 && t1 > 0) return t1;
+	if(t1 <= 0 && t0 > 0) return t0;
+	if(t0 > t1) return t1;
+	if(t1 > t0) return t0;
 	
-	return 0;
+	return t0;
+	
 }
 
 double plane_intersection(double* Ro, double* Rd, double* C, double* N){
@@ -443,80 +446,71 @@ void raycast_scene(Object** object_array, int object_counter, double** pixel_buf
 	double pixwidth;
 	double pixheight;
 	double t;
+	double best_t = INFINITY;
+	int best_index;
 	
 	if(object_array[parse_count]->kind != 0){
-		fprintf(stderr, "Error: First object must be of type camera\n");
+		fprintf(stderr, "Error: Must have one object of type camera\n");
 		exit(1);
 	}
 	
-	while(parse_count < object_counter + 1){
-		if(object_array[parse_count]->kind == 0){
-			if(parse_count != 0){
-				fprintf(stderr, "Error: You may only have one camera\n");
-				exit(1);
-			}
-			w = object_array[parse_count]->camera.width;
-			pixwidth = w/N;
-			h = object_array[parse_count]->camera.height;
-			pixheight = h/M;
-			parse_count++;
-			continue;
-		}else if(object_array[parse_count]->kind == 1){
-			for(y = 0; y < M; y += 1){
-				for(x = 0; x < N; x += 1){
-					Ro[0] = 0;
-					Ro[1] = 0;
-					Ro[2] = 0;
-					Rd[0] = cx - (w/2) + pixwidth * (x + .5);
-					Rd[1] = cy - (h/2) + pixheight * (y + .5);
-					Rd[2] = 1;
-					normalize(Rd);
-					
+	w = object_array[parse_count]->camera.width;
+	pixwidth = w/N;
+	h = object_array[parse_count]->camera.height;
+	pixheight = h/M;
+	parse_count++;
+	
+	Ro[0] = 0;
+	Ro[1] = 0;
+	Ro[2] = 0;
+	
+	for(y = 0; y < M; y += 1){
+		for(x = 0; x < N; x += 1){
+			Rd[0] = cx - (w/2) + pixwidth * (x + .5);
+			Rd[1] = cy - (h/2) + pixheight * (y + .5);
+			Rd[2] = 1;
+			normalize(Rd);
+			while(parse_count < object_counter + 1){
+				if(object_array[parse_count]->kind == 1){
 					t = sphere_intersection(Ro, Rd, object_array[parse_count]->sphere.position,
 											object_array[parse_count]->sphere.radius);
-					if(t > 0 && t != INFINITY){
-						pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][0] = object_array[parse_count]->sphere.color[0];
-						pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][1] = object_array[parse_count]->sphere.color[1];
-						pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][2] = object_array[parse_count]->sphere.color[2];
-						pixel_count++;
-					}else{
-						pixel_count++;
-					}
-				}
-			}
-			pixel_count = 0;
-			parse_count++;
-		}else if(object_array[parse_count]->kind == 2){
-			for(y = 0; y < M; y += 1){
-				for(x = 0; x < N; x += 1){
-					Ro[0] = 0;
-					Ro[1] = 0;
-					Ro[2] = 0;
-					Rd[0] = cx - (w/2) + pixwidth * (x + .5);
-					Rd[1] = cy - (h/2) + pixheight * (y + .5);
-					Rd[2] = 1;
-					normalize(Rd);
-					
+				}else if(object_array[parse_count]->kind == 2){
 					t = plane_intersection(Ro, Rd, object_array[parse_count]->plane.position,
 											object_array[parse_count]->plane.normal);
-					if(t > 0 && t != INFINITY){
-						pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][0] = object_array[parse_count]->plane.color[0];
-						pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][1] = object_array[parse_count]->plane.color[1];
-						pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][2] = object_array[parse_count]->plane.color[2];
-						pixel_count++;
-					}else{
-						pixel_count++;
-					}
+				}else{
+					fprintf(stderr,"Error: Unknown Object");
+					exit(1);
 				}
+				
+				if(t < best_t && t > 0){
+					best_t = t;
+					best_index = parse_count;
+				}
+				parse_count++;
 			}
-			pixel_count = 0;
-			parse_count++;
-		}else{
-			fprintf(stderr, "Error: Unrecognized Object\n");
-			exit(1);
+			printf("%lf %d\n", best_t, best_index);
+			if(best_t > 0 && best_t != INFINITY){
+				if(object_array[best_index]->kind == 1){
+					pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][0] = object_array[best_index]->sphere.color[0];
+					pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][1] = object_array[best_index]->sphere.color[1];
+					pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][2] = object_array[best_index]->sphere.color[2];
+				}else if(object_array[best_index]->kind == 2){
+					pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][0] = object_array[best_index]->plane.color[0];
+					pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][1] = object_array[best_index]->plane.color[1];
+					pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][2] = object_array[best_index]->plane.color[2];
+				}
+				else{
+					fprintf(stderr,"Error: Unknown Object");
+					exit(1);
+				}
+				parse_count = 1;
+			}else{
+				parse_count = 1;
+			}
+			pixel_count++;
+			best_t = INFINITY;
 		}
 	}
-	printf("All objects have been rendered!\n");
 }
 
 void create_image(double** pixel_buffer, char* output, int width, int height){

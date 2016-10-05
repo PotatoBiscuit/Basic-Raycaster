@@ -293,7 +293,7 @@ int read_scene(char* filename, Object** object_array) {	//Parses json file, and 
 		if (c == '}') {
 		  // stop parsing this object
 		  //If a required field is missing from an object, throw an error
-		  if(height == 1 || width == 1 || position == 1 || normal == 1 || color == 1){
+		  if(height == 1 || width == 1 || position == 1 || normal == 1 || color == 1 || radius == 1){
 			  fprintf(stderr, "Error: Required field missing from object at line:%d\n", line);
 			  exit(1);
 		  }
@@ -467,7 +467,7 @@ void raycast_scene(Object** object_array, int object_counter, double** pixel_buf
 	int best_index;
 	
 	if(object_array[parse_count]->kind != 0){	//If camera is not present, throw an error
-		fprintf(stderr, "Error: Must have one object of type camera\n");
+		fprintf(stderr, "Error: You must have one object of type camera\n");
 		exit(1);
 	}
 	

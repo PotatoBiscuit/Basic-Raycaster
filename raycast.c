@@ -139,7 +139,7 @@ static inline void normalize(double* v) {	//Normalize any vectors passed into th
 void store_value(Object* input_object, int type_of_field, double input_value, double* input_vector){
 	//type_of_field values: 0 = width, 1 = height, 2 = radius, 3 = color, 4 = position, 5 = normal
 	//if input_value or input_vector aren't used, a 0 or NULL value should be passed in
-	if(input_object->kind == 0){
+	if(input_object->kind == 0){	//If the object is a camera, store the input into its width or height fields
 		if(type_of_field == 0){
 			if(input_value <= 0){
 				fprintf(stderr, "Error: Camera width must be greater than 0, line:%d\n", line);
@@ -156,7 +156,7 @@ void store_value(Object* input_object, int type_of_field, double input_value, do
 			fprintf(stderr, "Error: Camera may only have 'width' or 'height' fields, line:%d\n", line);
 			exit(1);
 		}
-	}else if(input_object->kind == 1){
+	}else if(input_object->kind == 1){	//If the object is a sphere, store input in the radius, color, or position fields
 		if(type_of_field == 2){
 			input_object->sphere.radius = input_value;
 		}else if(type_of_field == 3){
@@ -179,7 +179,7 @@ void store_value(Object* input_object, int type_of_field, double input_value, do
 			fprintf(stderr, "Error: Spheres only have 'radius', 'color', or 'position' fields, line:%d\n", line);
 			exit(1);
 		}
-	}else if(input_object->kind == 2){
+	}else if(input_object->kind == 2){	//If the object is a plane, store input in the radius, color, or normal fields
 		if(type_of_field == 3){
 			if(input_vector[0] > 1 || input_vector[1] > 1 || input_vector[2] > 1){
 				fprintf(stderr, "Error: Color values must be between 0 and 1, line:%d\n", line);

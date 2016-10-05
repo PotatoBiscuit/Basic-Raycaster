@@ -215,6 +215,7 @@ int read_scene(char* filename, Object** object_array) {	//Parses json file, and 
   int c;
   int num_objects = 0;
   int object_counter = -1;
+  int height = 0, width = 0, radius = 0, color = 0, position = 0, normal = 0;	//These will serve as boolean operators
   FILE* json = fopen(filename, "r");	//Open our json file
 
   if (json == NULL) {	//If the file does not exist, throw an error
@@ -232,10 +233,9 @@ int read_scene(char* filename, Object** object_array) {	//Parses json file, and 
   // Find the objects
   while (1) {
     c = fgetc(json);
-    if (c == ']' && num_objects != 0) {		//After objects have been parsed, an ending bracket means the file has ended
-      fprintf(stdout, "JSON parsing complete!\n");
-      fclose(json);
-      return object_counter;
+    if (c == ']' && num_objects != 0) {		//A ',' must be read before getting here, which means we are expecting more objects
+      fprintf(stderr, "Error: End of file reached when expecting more objects, line:%d\n", line);
+      exit(1);
     }
 	else if(c == ']'){	//If no objects have been parsed and a bracket is found, our file is empty, throw an error
 		fprintf(stderr, "Error: JSON file contains no objects\n");
@@ -268,10 +268,18 @@ int read_scene(char* filename, Object** object_array) {	//Parses json file, and 
 
       if (strcmp(value, "camera") == 0) {
 		  object_array[object_counter]->kind = 0;	//If camera, set object kind to 0
+		  width = 1;
+		  height = 1;
       } else if (strcmp(value, "sphere") == 0) {
 		  object_array[object_counter]->kind = 1;	//If sphere, set object kind to 1
+		  position = 1;
+		  radius = 1;
+		  color = 1;
       } else if (strcmp(value, "plane") == 0) {
 		  object_array[object_counter]->kind = 2;	//If plane, set object kind to 2
+		  position = 1;
+		  normal = 1;
+		  color = 1;
       } else {
 	fprintf(stderr, "Error: Unknown type, \"%s\", on line number %d.\n", value, line);
 	exit(1);
@@ -284,6 +292,11 @@ int read_scene(char* filename, Object** object_array) {	//Parses json file, and 
 		c = next_c(json);
 		if (c == '}') {
 		  // stop parsing this object
+		  //If a required field is missing from an object, throw an error
+		  if(height == 1 || width == 1 || position == 1 || normal == 1 || color == 1){
+			  fprintf(stderr, "Error: Required field missing from object at line:%d\n", line);
+			  exit(1);
+		  }
 		  break;
 		} else if (c == ',') {
 		  // read another field
@@ -295,21 +308,27 @@ int read_scene(char* filename, Object** object_array) {	//Parses json file, and 
 		  if (strcmp(key, "width") == 0){	//Based on the field, parse a number or vector
 			  double value = next_number(json);
 			  store_value(object_array[object_counter], 0, value, NULL);	//And store the value in the object_array
+			  width = 0;
 		  }else if(strcmp(key, "height") == 0){
 			  double value = next_number(json);
 			  store_value(object_array[object_counter], 1, value, NULL);
+			  height = 0;
 		  }else if(strcmp(key, "radius") == 0) {
 			  double value = next_number(json);
 			  store_value(object_array[object_counter], 2, value, NULL);
+			  radius = 0;
 		  } else if (strcmp(key, "color") == 0){
 			  double* value = next_vector(json);
 			  store_value(object_array[object_counter], 3, 0, value);
+			  color = 0;
 		  }else if(strcmp(key, "position") == 0){
 			  double* value = next_vector(json);
 			  store_value(object_array[object_counter], 4, 0, value);
+			  position = 0;
 		  }else if(strcmp(key, "normal") == 0) {
 			  double* value = next_vector(json);
 			  store_value(object_array[object_counter], 5, 0, value);
+			  normal = 0;
 		  } else {
 			fprintf(stderr, "Error: Unknown property, \"%s\", on line %d.\n",
 				key, line);
@@ -328,7 +347,6 @@ int read_scene(char* filename, Object** object_array) {	//Parses json file, and 
 	// noop
 	skip_ws(json);
       } else if (c == ']') {	//If there is an ending bracket, it is the end JSON file
-	fprintf(stdout, "JSON parsing complete!\n");
 	fclose(json);
 	return object_counter;
       } else {
@@ -492,14 +510,14 @@ void raycast_scene(Object** object_array, int object_counter, double** pixel_buf
 			
 			if(best_t > 0 && best_t != INFINITY){	//If if our closest intersection is valid...
 				if(object_array[best_index]->kind == 1){	//Store the associated object color into our pixel array
-					pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][0] = object_array[best_index]->sphere.color[0];
-					pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][1] = object_array[best_index]->sphere.color[1];
-					pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][2] = object_array[best_index]->sphere.color[2];
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][0] = object_array[best_index]->sphere.color[0];
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][1] = object_array[best_index]->sphere.color[1];
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][2] = object_array[best_index]->sphere.color[2];
 				}else if(object_array[best_index]->kind == 2){
-					pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][0] = object_array[best_index]->plane.color[0];
-					pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][1] = object_array[best_index]->plane.color[1];
-					pixel_buffer[(int)((N*M - 1) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][2] = object_array[best_index]->plane.color[2];
-				}
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][0] = object_array[best_index]->plane.color[0];
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][1] = object_array[best_index]->plane.color[1];
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][2] = object_array[best_index]->plane.color[2];
+				}	//Storage occurs from the last row to the first row, from left to right
 				else{
 					fprintf(stderr,"Error: Unknown Object");
 					exit(1);
@@ -528,7 +546,6 @@ void create_image(double** pixel_buffer, char* output, int width, int height){	/
 	fprintf(output_pointer, "P6\n%d %d\n255\n", width, height);	//Write P6 header to output.ppm
 	fwrite(buffer, sizeof(char), width*height*3, output_pointer);	//Write buffer to output.ppm
 	
-	fprintf(stdout, "Write to %s complete!\n", output);	//Tell user about success
 	fclose(output_pointer);
 }
 

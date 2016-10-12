@@ -5,32 +5,22 @@
 #include <math.h>
 
 typedef struct {	//Create structure to be used for our object_array
-  int kind; // 0 = camera, 1 = sphere, 2 = plane, 3 = light
+  int kind; // 0 = camera, 1 = sphere, 2 = plane
   union {
     struct {
       double width;
       double height;
     } camera;
     struct {
-      double diffuse_color[3];
-	  double specular_color[3];
+      double color[3];
 	  double position[3];
       double radius;
     } sphere;
     struct {
-      double diffuse_color[3];
-	  double specular_color[3];
+      double color[3];
 	  double position[3];
 	  double normal[3];
     } plane;
-	struct {
-	  double color[3];
-	  double position[3];
-	  double direction[3];
-	  double radial-a2;
-	  double radial-a1;
-	  double radial-a0;
-	} light;
   };
 } Object;
 

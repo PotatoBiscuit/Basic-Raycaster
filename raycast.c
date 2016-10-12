@@ -27,10 +27,9 @@ typedef struct {	//Create structure to be used for our object_array
 	  double color[3];
 	  double position[3];
 	  double direction[3];
-	  double radial_a2;
-	  double radial_a1;
-	  double radial_a0;
-	  double angular_a0;
+	  double radial-a2;
+	  double radial-a1;
+	  double radial-a0;
 	} light;
   };
 } Object;
@@ -148,8 +147,7 @@ static inline void normalize(double* v) {	//Normalize any vectors passed into th
 }
 
 void store_value(Object* input_object, int type_of_field, double input_value, double* input_vector){
-	//type_of_field values: 0 = width, 1 = height, 2 = radius, 3 = diffuse_color, 4 = specular_color, 5 = position, 6 = normal
-	//7 = radial_a0, 8 = radial_a1, 9 = radial_a2, 10 = angular_a0, 11 = color, 12 = direction
+	//type_of_field values: 0 = width, 1 = height, 2 = radius, 3 = color, 4 = position, 5 = normal
 	//if input_value or input_vector aren't used, a 0 or NULL value should be passed in
 	if(input_object->kind == 0){	//If the object is a camera, store the input into its width or height fields
 		if(type_of_field == 0){
@@ -173,99 +171,48 @@ void store_value(Object* input_object, int type_of_field, double input_value, do
 			input_object->sphere.radius = input_value;
 		}else if(type_of_field == 3){
 			if(input_vector[0] > 1 || input_vector[1] > 1 || input_vector[2] > 1){
-				fprintf(stderr, "Error: Diffuse color values must be between 0 and 1, line:%d\n", line);
+				fprintf(stderr, "Error: Color values must be between 0 and 1, line:%d\n", line);
 				exit(1);
 			}
 			if(input_vector[0] < 0 || input_vector[1] < 0 || input_vector[2] < 0){
-				fprintf(stderr, "Error: Diffuse color values may not be negative, line:%d\n", line);
+				fprintf(stderr, "Error: Color values may not be negative, line:%d\n", line);
 				exit(1);
 			}
-			input_object->sphere.diffuse_color[0] = input_vector[0];
-			input_object->sphere.diffuse_color[1] = input_vector[1];
-			input_object->sphere.diffuse_color[2] = input_vector[2];
+			input_object->sphere.color[0] = input_vector[0];
+			input_object->sphere.color[1] = input_vector[1];
+			input_object->sphere.color[2] = input_vector[2];
 		}else if(type_of_field == 4){
-			if(input_vector[0] > 1 || input_vector[1] > 1 || input_vector[2] > 1){
-				fprintf(stderr, "Error: Specular color values must be between 0 and 1, line:%d\n", line);
-				exit(1);
-			}
-			if(input_vector[0] < 0 || input_vector[1] < 0 || input_vector[2] < 0){
-				fprintf(stderr, "Error: Specular color values may not be negative, line:%d\n", line);
-				exit(1);
-			}
-			input_object->sphere.specular_color[0] = input_vector[0];
-			input_object->sphere.specular_color[1] = input_vector[1];
-			input_object->sphere.specular_color[2] = input_vector[2];
-		}else if(type_of_field == 5){
 			input_object->sphere.position[0] = input_vector[0];
 			input_object->sphere.position[1] = input_vector[1];
 			input_object->sphere.position[2] = input_vector[2];
 		}else{
-			fprintf(stderr, "Error: Spheres only have 'radius', 'specular_color', 'diffuse_color', or 'position' fields, line:%d\n", line);
+			fprintf(stderr, "Error: Spheres only have 'radius', 'color', or 'position' fields, line:%d\n", line);
 			exit(1);
 		}
 	}else if(input_object->kind == 2){	//If the object is a plane, store input in the radius, color, or normal fields
 		if(type_of_field == 3){
 			if(input_vector[0] > 1 || input_vector[1] > 1 || input_vector[2] > 1){
-				fprintf(stderr, "Error: Diffuse color values must be between 0 and 1, line:%d\n", line);
+				fprintf(stderr, "Error: Color values must be between 0 and 1, line:%d\n", line);
 				exit(1);
 			}
 			if(input_vector[0] < 0 || input_vector[1] < 0 || input_vector[2] < 0){
-				fprintf(stderr, "Error: Diffuse color values may not be negative, line:%d\n", line);
+				fprintf(stderr, "Error: Color values may not be negative, line:%d\n", line);
 				exit(1);
 			}
-			input_object->plane.diffuse_color[0] = input_vector[0];
-			input_object->plane.diffuse_color[1] = input_vector[1];
-			input_object->plane.diffuse_color[2] = input_vector[2];
+			input_object->plane.color[0] = input_vector[0];
+			input_object->plane.color[1] = input_vector[1];
+			input_object->plane.color[2] = input_vector[2];
 		}else if(type_of_field == 4){
-			if(input_vector[0] > 1 || input_vector[1] > 1 || input_vector[2] > 1){
-				fprintf(stderr, "Error: Specular color values must be between 0 and 1, line:%d\n", line);
-				exit(1);
-			}
-			if(input_vector[0] < 0 || input_vector[1] < 0 || input_vector[2] < 0){
-				fprintf(stderr, "Error: Specular color values may not be negative, line:%d\n", line);
-				exit(1);
-			}
-			input_object->plane.specular_color[0] = input_vector[0];
-			input_object->plane.specular_color[1] = input_vector[1];
-			input_object->plane.specular_color[2] = input_vector[2];
-		}else if(type_of_field == 5){
 			input_object->plane.position[0] = input_vector[0];
 			input_object->plane.position[1] = input_vector[1];
 			input_object->plane.position[2] = input_vector[2];
-		}else if(type_of_field == 6){
+		}else if(type_of_field == 5){
 			input_object->plane.normal[0] = input_vector[0];
 			input_object->plane.normal[1] = input_vector[1];
 			input_object->plane.normal[2] = input_vector[2];
 			normalize(input_object->plane.normal);
 		}else{
-			fprintf(stderr, "Error: Planes only have 'radius', 'specular_color', 'diffuse_color', or 'normal' fields, line:%d\n", line);
-			exit(1);
-		}
-	}else if(input_object->kind == 3){
-		if(type_of_field == 5){
-			input_object->light.position[0] = input_vector[0];
-			input_object->light.position[1] = input_vector[1];
-			input_object->light.position[2] = input_vector[2];
-		}else if(type_of_field == 11){
-			input_object->light.color[0] = input_vector[0];
-			input_object->light.color[1] = input_vector[1];
-			input_object->light.color[2] = input_vector[2];
-		}else if(type_of_field == 12){
-			input_object->light.direction[0] = input_vector[0];
-			input_object->light.direction[1] = input_vector[1];
-			input_object->light.direction[2] = input_vector[2];
-			normalize(input_object->light.direction);
-		}else if(type_of_field == 7){
-			input_object->light.radial_a0 = input_value;
-		}else if(type_of_field == 8){
-			input_object->light.radial_a1 = input_value;
-		}else if(type_of_field == 9){
-			input_object->light.radial_a2 = input_value;
-		}else if(type_of_field == 10){
-			input_object->light.angular_a0 = input_value;
-		}else{
-			fprintf(stderr, "Error: Lights must have the fields listed, line:%d\n", line);
-			fprintf(stderr, "Color\nPosition\nDirection\nradial-n0\nradial-n1\nradial-n2\nangular-n0\n");
+			fprintf(stderr, "Error: Planes only have 'radius', 'color', or 'normal' fields, line:%d\n", line);
 			exit(1);
 		}
 	}else{
@@ -278,8 +225,7 @@ int read_scene(char* filename, Object** object_array) {	//Parses json file, and 
   int c;
   int num_objects = 0;
   int object_counter = -1;
-  int height = 0, width = 0, radius = 0, diffuse_color = 0, specular_color = 0, position = 0, normal = 0;	//These will serve as boolean operators
-  int radial_a2 = 0, radial_a1 = 0, radial_a0 = 0, angular_a0 = 0, color = 0;
+  int height = 0, width = 0, radius = 0, color = 0, position = 0, normal = 0;	//These will serve as boolean operators
   FILE* json = fopen(filename, "r");	//Open our json file
 
   if (json == NULL) {	//If the file does not exist, throw an error
@@ -338,25 +284,15 @@ int read_scene(char* filename, Object** object_array) {	//Parses json file, and 
 		  object_array[object_counter]->kind = 1;	//If sphere, set object kind to 1
 		  position = 1;
 		  radius = 1;
-		  specular_color = 1;
-		  diffuse_color = 1;
+		  color = 1;
       } else if (strcmp(value, "plane") == 0) {
 		  object_array[object_counter]->kind = 2;	//If plane, set object kind to 2
 		  position = 1;
 		  normal = 1;
-		  specular_color = 1;
-		  diffuse_color = 1;
-      } else if (strcmp(value, "light") == 0){
-		  object_array[object_counter]->kind = 3;
-		  position = 1;
 		  color = 1;
-		  radial_a0 = 1;
-		  radial_a1 = 1;
-		  radial_a2 = 1;
-		  angular_a0 = 1;
-	  } else {
-		  fprintf(stderr, "Error: Unknown type, \"%s\", on line number %d.\n", value, line);
-		  exit(1);
+      } else {
+	fprintf(stderr, "Error: Unknown type, \"%s\", on line number %d.\n", value, line);
+	exit(1);
       }
 
       skip_ws(json);
@@ -367,8 +303,7 @@ int read_scene(char* filename, Object** object_array) {	//Parses json file, and 
 		if (c == '}') {
 		  // stop parsing this object
 		  //If a required field is missing from an object, throw an error
-		  if(height == 1 || width == 1 || position == 1 || normal == 1 || color == 1 || radius == 1 ||
-		  radial_a0 == 1 || radial_a1 == 1 || radial_a2 == 1 || angular_a0 == 1 || diffuse_color == 1 || specular_color == 1){
+		  if(height == 1 || width == 1 || position == 1 || normal == 1 || color == 1 || radius == 1){
 			  fprintf(stderr, "Error: Required field missing from object at line:%d\n", line);
 			  exit(1);
 		  }
@@ -392,47 +327,20 @@ int read_scene(char* filename, Object** object_array) {	//Parses json file, and 
 			  double value = next_number(json);
 			  store_value(object_array[object_counter], 2, value, NULL);
 			  radius = 0;
-		  }else if (strcmp(key, "color") == 0){
+		  } else if (strcmp(key, "color") == 0){
 			  double* value = next_vector(json);
-			  store_value(object_array[object_counter], 11, 0, value);
+			  store_value(object_array[object_counter], 3, 0, value);
 			  color = 0;
 		  }else if(strcmp(key, "position") == 0){
 			  double* value = next_vector(json);
-			  store_value(object_array[object_counter], 5, 0, value);
+			  store_value(object_array[object_counter], 4, 0, value);
 			  position = 0;
 		  }else if(strcmp(key, "normal") == 0) {
 			  double* value = next_vector(json);
-			  store_value(object_array[object_counter], 6, 0, value);
+			  store_value(object_array[object_counter], 5, 0, value);
 			  normal = 0;
-		  }else if(strcmp(key, "diffuse_color") == 0){
-			  double* value = next_vector(json);
-			  store_value(object_array[object_counter], 3, 0, value);
-			  diffuse_color = 0;
-		  }else if(strcmp(key, "specular_color") == 0){
-			  double* value = next_vector(json);
-			  store_value(object_array[object_counter], 4, 0, value);
-			  specular_color = 0;
-		  }else if(strcmp(key, "radial-a0") == 0){
-			  double value = next_number(json);
-			  store_value(object_array[object_counter], 7, value, NULL);
-			  radial_a0 = 0;
-		  }else if(strcmp(key, "radial-a1") == 0){
-			  double value = next_number(json);
-			  store_value(object_array[object_counter], 8, value, NULL);
-			  radial_a1 = 0;
-		  }else if(strcmp(key, "radial-a2") == 0){
-			  double value = next_number(json);
-			  store_value(object_array[object_counter], 9, value, NULL);
-			  radial_a2 = 0;
-		  }else if(strcmp(key, "angular-a0") == 0){
-			  double value = next_number(json);
-			  store_value(object_array[object_counter], 10, value, NULL);
-			  angular_a0 = 0;
-		  }else if(strcmp(key, "direction") == 0){
-			  double* value = next_vector(json);
-			  store_value(object_array[object_counter], 12, 0, value);
-		  }else{
-				fprintf(stderr, "Error: Unknown property, \"%s\", on line %d.\n",
+		  } else {
+			fprintf(stderr, "Error: Unknown property, \"%s\", on line %d.\n",
 				key, line);
 				exit(1);
 		  }
@@ -598,11 +506,8 @@ void raycast_scene(Object** object_array, int object_counter, double** pixel_buf
 				}else if(object_array[parse_count]->kind == 2){	//If plane, test for a plane intersection
 					t = plane_intersection(Ro, Rd, object_array[parse_count]->plane.position,
 											object_array[parse_count]->plane.normal);
-				}else if(object_array[parse_count]->kind == 3){
-					parse_count++;
-					continue;
 				}else{
-					fprintf(stderr,"Error: Unknown Object\n");
+					fprintf(stderr,"Error: Unknown Object");
 					exit(1);
 				}
 				
@@ -615,18 +520,16 @@ void raycast_scene(Object** object_array, int object_counter, double** pixel_buf
 			
 			if(best_t > 0 && best_t != INFINITY){	//If if our closest intersection is valid...
 				if(object_array[best_index]->kind == 1){	//Store the associated object color into our pixel array
-					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][0] = object_array[best_index]->sphere.diffuse_color[0];
-					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][1] = object_array[best_index]->sphere.diffuse_color[1];
-					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][2] = object_array[best_index]->sphere.diffuse_color[2];
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][0] = object_array[best_index]->sphere.color[0];
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][1] = object_array[best_index]->sphere.color[1];
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][2] = object_array[best_index]->sphere.color[2];
 				}else if(object_array[best_index]->kind == 2){
-					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][0] = object_array[best_index]->plane.diffuse_color[0];
-					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][1] = object_array[best_index]->plane.diffuse_color[1];
-					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][2] = object_array[best_index]->plane.diffuse_color[2];
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][0] = object_array[best_index]->plane.color[0];
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][1] = object_array[best_index]->plane.color[1];
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][2] = object_array[best_index]->plane.color[2];
 				}	//Storage occurs from the last row to the first row, from left to right
-				else if(object_array[best_index]->kind == 3){
-					;
-				}else{
-					fprintf(stderr,"Error: Unknown Object\n");
+				else{
+					fprintf(stderr,"Error: Unknown Object");
 					exit(1);
 				}
 				parse_count = 1;

@@ -147,12 +147,6 @@ static inline void normalize(double* v) {	//Normalize any vectors passed into th
 	v[2] /= len;
 }
 
-double clamp(double input){
-	if(input > 1) return 1;
-	if(input < 0) return 0;
-	return input;
-}
-
 void store_value(Object* input_object, int type_of_field, double input_value, double* input_vector){
 	//type_of_field values: 0 = width, 1 = height, 2 = radius, 3 = diffuse_color, 4 = specular_color, 5 = position, 6 = normal
 	//7 = radial_a0, 8 = radial_a1, 9 = radial_a2, 10 = angular_a0, 11 = color, 12 = direction
@@ -556,86 +550,14 @@ double plane_intersection(double* Ro, double* Rd, double* C, double* N){ //Calcu
 	return 0;	//else just return 0
 }
 
-double* render_light(Object** object_array, int object_counter, double best_t, int best_index, double* Ro, double* Rd){
-	double t = 0;
-	int parse_count = 1;
-	int parse_count1 = 1;
-	double Ron[3];
-	double Rdn[3];
-	double* color = malloc(sizeof(double)*3);
-	int closest_shadow_index = -1;
-	
-	
-	Ron[0] = best_t * Rd[0] + Ro[0];
-	Ron[1] = best_t * Rd[1] + Ro[1];
-	Ron[2] = best_t * Rd[2] + Ro[2];
-			
-	parse_count = 1;
-	parse_count1 = 1;
-	closest_shadow_index = -1;
-	
-	color[0] = 0;
-	color[1] = 0;
-	color[2] = 0;
-	
-	while(parse_count < object_counter + 1){
-		if(object_array[parse_count]->kind == 3){
-			Rdn[0] = object_array[parse_count]->light.position[0] - Ron[0];
-			Rdn[1] = object_array[parse_count]->light.position[1] - Ron[1];
-			Rdn[2] = object_array[parse_count]->light.position[2] - Ron[2];
-			normalize(Rdn);
-			while(parse_count1 < object_counter + 1){
-				if(parse_count1 == best_index){
-					parse_count1++;
-					continue;
-				}
-				if(object_array[parse_count1]->kind == 1){
-					t = sphere_intersection(Ron, Rdn, object_array[parse_count1]->sphere.position,
-									object_array[parse_count1]->sphere.radius);
-					parse_count1++;
-				}else if(object_array[parse_count1]->kind == 2){
-					t = plane_intersection(Ron, Rdn, object_array[parse_count1]->plane.position,
-											object_array[parse_count1]->plane.normal);
-					parse_count1++;
-				}else{
-					parse_count1++;
-					continue;
-				}
-				
-				if(t > 0){
-					break;
-				}
-			}
-			if(t <= 0){
-				if(object_array[best_index]->kind == 1){
-					color[0] += object_array[best_index]->sphere.diffuse_color[0];
-					color[1] += object_array[best_index]->sphere.diffuse_color[1];
-					color[2] += object_array[best_index]->sphere.diffuse_color[2];
-				}else if(object_array[best_index]->kind == 2){
-					color[0] += object_array[best_index]->plane.diffuse_color[0];
-					color[1] += object_array[best_index]->plane.diffuse_color[1];
-					color[2] += object_array[best_index]->plane.diffuse_color[2];
-				}
-			}
-			t = 0;
-			parse_count1 = 1;
-		}
-		parse_count++;
-	}
-	color[0] = clamp(color[0]);
-	color[1] = clamp(color[1]);
-	color[2] = clamp(color[2]);
-	
-	return color;
-}
-
 void raycast_scene(Object** object_array, int object_counter, double** pixel_buffer, int N, int M){	//This raycasts our object_array
 	int parse_count = 0;
 	int pixel_count = 0;
 	int i;
+	int x;
+	int y;
 	double Ro[3];
 	double Rd[3];
-	double* color;
 	double cx = 0;
 	double cy = 0;
 	double w;
@@ -663,8 +585,8 @@ void raycast_scene(Object** object_array, int object_counter, double** pixel_buf
 	Ro[1] = 0;
 	Ro[2] = 0;
 	
-	for(int y = 0; y < M; y += 1){	//Raycast every shape for each pixel
-		for(int x = 0; x < N; x += 1){
+	for(y = 0; y < M; y += 1){	//Raycast every shape for each pixel
+		for(x = 0; x < N; x += 1){
 			Rd[0] = cx - (w/2) + pixwidth * (x + .5);	//Create direction vector
 			Rd[1] = cy - (h/2) + pixheight * (y + .5);
 			Rd[2] = 1;
@@ -676,9 +598,12 @@ void raycast_scene(Object** object_array, int object_counter, double** pixel_buf
 				}else if(object_array[parse_count]->kind == 2){	//If plane, test for a plane intersection
 					t = plane_intersection(Ro, Rd, object_array[parse_count]->plane.position,
 											object_array[parse_count]->plane.normal);
-				}else{
+				}else if(object_array[parse_count]->kind == 3){
 					parse_count++;
 					continue;
+				}else{
+					fprintf(stderr,"Error: Unknown Object\n");
+					exit(1);
 				}
 				
 				if(t < best_t && t > 0){	//Store object index with the closest intersection
@@ -687,14 +612,23 @@ void raycast_scene(Object** object_array, int object_counter, double** pixel_buf
 				}
 				parse_count++;
 			}
-
 			
 			if(best_t > 0 && best_t != INFINITY){	//If if our closest intersection is valid...
-				color = render_light(object_array, object_counter, best_t, best_index, Ro, Rd);
-				pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][0] = color[0];
-				pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][1] = color[1];
-				pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][2] = color[2];
-				free(color);
+				if(object_array[best_index]->kind == 1){	//Store the associated object color into our pixel array
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][0] = object_array[best_index]->sphere.diffuse_color[0];
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][1] = object_array[best_index]->sphere.diffuse_color[1];
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][2] = object_array[best_index]->sphere.diffuse_color[2];
+				}else if(object_array[best_index]->kind == 2){
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][0] = object_array[best_index]->plane.diffuse_color[0];
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][1] = object_array[best_index]->plane.diffuse_color[1];
+					pixel_buffer[(int)((N*M) - (floor(pixel_count/N) + 1)*N)+ pixel_count%N][2] = object_array[best_index]->plane.diffuse_color[2];
+				}	//Storage occurs from the last row to the first row, from left to right
+				else if(object_array[best_index]->kind == 3){
+					;
+				}else{
+					fprintf(stderr,"Error: Unknown Object\n");
+					exit(1);
+				}
 				parse_count = 1;
 			}else{
 				parse_count = 1;
